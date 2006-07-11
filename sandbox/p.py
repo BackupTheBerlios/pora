@@ -3,17 +3,15 @@ import sys
 import wx
 
 #class FText(wx.EvtHandler):
-class FText(wx.Window):
+class FText(wx.PyControl):
     def __init__(self, parent, x, y, text, textFont = None):
-        #wx.EvtHandler.__init__(self)
-        wx.Window.__init__(self, parent)
-
-        self.SetSize((0, 0))
-        #self.Hide()
+        wx.PyControl.__init__(self, parent, -1, style = wx.BORDER_NONE)
 
         self.x = x
         self.y = y
         self.text = text
+
+        self.SetPosition((self.x, self.y))
 
         if textFont is None:
             self.textFont = wx.Font(8, wx.SWISS, wx.NORMAL, wx.NORMAL)
@@ -28,32 +26,44 @@ class FText(wx.Window):
         self.Bind(wx.EVT_MOTION, self.OnMouseMove)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
+
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+
+        self._CursorHand = wx.StockCursor(wx.CURSOR_HAND)
+
+    def onMouseOver(self, flag):
+        if flag:
+            self.textColor = wx.TheColourDatabase.FindColour("ORANGE")
+        else:
+            self.textColor = wx.TheColourDatabase.FindColour("WHITE")
+        self.Refresh(False)
 
     def OnMouseMove(self, evt):
-        print evt
-    def OnMouseEvent(self, evt):
-        print evt
-    def OnMotion(self, evt):
-        print evt
+        evt
 
-    def ProcessEvent(self, event):
-        """
-        Processes an event, searching event tables and calling zero or more
-        suitable event handler function(s).  Note that the ProcessEvent
-        method is called from the wxPython docview framework directly since
-        wxPython does not have a virtual ProcessEvent function.
-        """
-        print event
-        return False
+    def OnMouseEvent(self, event):
+        if event.Leaving():
+            self.SetCursor(wx.NullCursor)
+            self.onMouseOver(False)
+        else:            
+            self.SetCursor(self._CursorHand)
+            self.onMouseOver(True)
+
+    def OnMotion(self, evt):
+        evt
+
+    def OnSize(self, evt):
+        #self.Refresh(False)
+        evt.Skip()
 
     def OnPaint(self, event):
         pdc = wx.PaintDC(self)
         self.Draw(pdc)
-        print 'new paintz'
+        #print 'new paintz'
 
-    def OnDraw(self, evt):
-        print 'OnDraw'
+    #def OnDraw(self, evt):
+    #    print 'OnDraw'
 
     def Draw(self, pdc):
 
@@ -73,12 +83,17 @@ class FText(wx.Window):
         pdc.Blit(xstart, ystart, 300, 300, dc, xstart, ystart)
 
         #print dir(rect)
+        #self.SetPosition( (self.x+100, self.y) )
         self.SetSize(rect.GetSize())
 
         return rect
 
     def _Draw(self, dc, textTrailer = 0, stripes = True):
         twidth, theight = dc.GetTextExtent(self.text)
+        #print 'theight', theight
+
+        self.x = 0
+        self.y = 0
 
         x1 = self.x
         y1 = self.y
@@ -94,12 +109,12 @@ class FText(wx.Window):
 
         dc.SetPen(wx.TRANSPARENT_PEN)
 
-        dc.SetPen(wx.Pen("black", 1))
-        dc.SetBrush(wx.Brush("black"))
-        dc.DrawArc(x1, y1/2, x2, y2/2, xc, yc/2)
+        dc.SetPen(wx.Pen(self.textBgColor1, 1))
+        dc.SetBrush(wx.Brush(self.textBgColor1))
+        ht2 = theight / 2
+        dc.DrawArc(x1+ht2, y1/2, x2+ht2, y2/2, xc+ht2, yc/2)
 
-        rect = wx.Rect(x1 - 3, y1/2, twidth + (twidth / 5), theight + textTrailer)
-
+        rect = wx.Rect(x1+ht2, y1/2, twidth + (twidth / 5), theight + textTrailer)
         self.DrawHorizontalGradient(dc, rect, color1, color2)
 
         if stripes:
@@ -107,18 +122,18 @@ class FText(wx.Window):
             ii_tmp = 0
             for ii in range(0, theight, 2):
                 ii_tmp = ii
-                rect = wx.Rect(x1 - 3 + twidth + (twidth / 5), (y1/2) + ii, 5, 2)
-                print rect
+                rect = wx.Rect(x1 + twidth + (twidth / 5), (y1/2) + ii, 5, 2)
+                #print rect
                 self.DrawHorizontalGradient(dc, rect, color2, color3)
 
-                rect = wx.Rect(x1 - 3 + twidth + (twidth / 5), (y1/2) + ii, 15, 1)
-                print rect
+                rect = wx.Rect(x1 + twidth + (twidth / 5), (y1/2) + ii, 15, 1)
+                #print rect
                 self.DrawHorizontalGradient(dc, rect, color2, color3)
 
             while (y1/2) + ii_tmp + 2 < y1/2 + theight:
-                print "adjust", ii_tmp, theight
+                #print "adjust", ii_tmp, theight
                 rect = wx.Rect(x1 - 3 + twidth + (twidth / 5), (y1/2) + ii_tmp, 15, 1)
-                print rect
+                #print rect
                 self.DrawHorizontalGradient(dc, rect, color2, color3)
 
                 ii_tmp += 2
@@ -127,9 +142,9 @@ class FText(wx.Window):
         color = self.textColor
         dc.SetTextForeground(color)
 
-        dc.DrawText(self.text, xc, self.y/2)
+        dc.DrawText(self.text, xc+ht2, self.y/2)
 
-        return wx.Rect(x1, y1, x1 - 3 + twidth + (twidth / 5) + 15, (y1/2) + ii_tmp)
+        return wx.Rect(x1, y1, x1 - 3 + twidth + (twidth / 5) + 15, (y1/2) + ii_tmp + 3)
 
     def DrawHorizontalGradient(self, dc, rect, col1, col2):
 
@@ -174,7 +189,8 @@ class WGUI(wx.ScrolledWindow):
         self.maxWidth = 500
         self.maxHeight = 500
 
-        self.ft = FText(self, 10, 5, 'asdasdasd')
+        self.ft = FText(self, 100, 54, 'asdasdasd')
+        self.ft2 = FText(self, 10, 4, 'asdasdasd')
 
         self.SetVirtualSize((self.maxWidth, self.maxHeight))
         scrollRate = self.tile_narrow + self.tile_wide
@@ -185,19 +201,19 @@ class WGUI(wx.ScrolledWindow):
 
         self.bmp = wx.EmptyBitmap(self.maxWidth, self.maxHeight)
 
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        #self.Bind(wx.EVT_PAINT, self.OnPaint)
 
         self.textBgColor1 = wx.TheColourDatabase.FindColour("BLACK")
         self.textBgColor2 = wx.TheColourDatabase.FindColour("GRAY")
         self.textColor = wx.TheColourDatabase.FindColour("WHITE")
 
-    def OnPaint(self, event):
+    def OnPaint1(self, event):
         """ Handles The wx.EVT_PAINT Event For PieCtrl. """
 
         pdc = wx.PaintDC(self)
         #self.Draw(pdc)
 
-    def Draw(self, pdc):
+    def Draw1(self, pdc):
 
         if 1:
             print 'paint new'
@@ -375,3 +391,4 @@ if __name__ == '__main__':
 
 
 # ---
+
