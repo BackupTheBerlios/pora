@@ -23,21 +23,57 @@ class FText(wx.PyControl):
         self.textColor = wx.TheColourDatabase.FindColour("WHITE")
 
         #self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_MOTION, self.OnMouseMove)
+        #self.Bind(wx.EVT_MOTION, self.OnMouseMove)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
-        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        #self.Bind(wx.EVT_MOTION, self.OnMotion)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
         self._CursorHand = wx.StockCursor(wx.CURSOR_HAND)
 
+        self._raiseDelay = 1
+
     def onMouseOver(self, flag):
         if flag:
             self.textColor = wx.TheColourDatabase.FindColour("ORANGE")
+            c2 = self.textColor
+            c1 = wx.TheColourDatabase.FindColour("WHITE")
         else:
             self.textColor = wx.TheColourDatabase.FindColour("WHITE")
-        self.Refresh(False)
+            c1 = self.textColor
+            c2 = wx.TheColourDatabase.FindColour("WHITE")
+
+        if self._raiseDelay is not None:
+            self.RefreshSmoothly(c1, c2, False)
+        else:
+            self.Refresh(False)
+
+    def RefreshSmoothly(self, col1, col2, flag):
+
+        r1, g1, b1 = int(col1.Red()), int(col1.Green()), int(col1.Blue())
+        r2, g2, b2 = int(col2.Red()), int(col2.Green()), int(col2.Blue())
+
+        flrect = self._textWidth
+
+        rstep = float((r2 - r1)) / flrect
+        gstep = float((g2 - g1)) / flrect
+        bstep = float((b2 - b1)) / flrect
+
+        rf, gf, bf = 0, 0, 0
+
+        self.Refresh(flag)
+
+        return
+        
+        for x in range(r1 + g1 + b1, r2 + g2 + b2):
+            currCol = (r1 + rf, g1 + gf, b1 + bf)
+                
+            dc.SetBrush(wx.Brush(currCol, wx.SOLID))
+            dc.DrawRectangle(rect.x + (x - rect.x), rect.y, 1, rect.height)
+            rf = rf + rstep
+            gf = gf + gstep
+            bf = bf + bstep
 
     def OnMouseMove(self, evt):
         evt
@@ -92,6 +128,8 @@ class FText(wx.PyControl):
         twidth, theight = dc.GetTextExtent(self.text)
         #print 'theight', theight
 
+        self._textWidth = twidth
+
         self.x = 0
         self.y = 0
 
@@ -142,6 +180,7 @@ class FText(wx.PyControl):
         color = self.textColor
         dc.SetTextForeground(color)
 
+        self._textPos = (xc+ht2, self.y/2)
         dc.DrawText(self.text, xc+ht2, self.y/2)
 
         return wx.Rect(x1, y1, x1 - 3 + twidth + (twidth / 5) + 15, (y1/2) + ii_tmp + 3)
