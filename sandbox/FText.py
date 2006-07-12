@@ -1,4 +1,8 @@
 
+#
+# $Id: FText.py,v 1.1 2006/07/12 13:03:15 lightdruid Exp $
+#
+
 import sys
 import wx
 
